@@ -256,7 +256,7 @@ class PrinterMQTTClient:
         Get the printer state
 
         Returns:
-            PrintStatus: printer state
+            GcodeState: gcode state
         """
         return GcodeState(self.__get("gcode_state", -1))
 
@@ -322,6 +322,55 @@ class PrinterMQTTClient:
         return light_report[0].get("mode", "unknown")
 
     def start_print_3mf(self, filename: str,
+                        plate_number: int,
+                        bed_leveling: bool = True,
+                        flow_calibration: bool = False,
+                        vibration_calibration: bool = False,
+                        bed_type:str = "textured_plate",
+                        use_ams: bool = True,
+                        ams_mapping: list[int] = [0],
+                        skip_objects: list[int] | None = None,
+                        ) -> bool:
+        """
+        Start the print
+
+        Parameters:
+            filename (str): The name of the file to print
+            plate_number (int): The plate number to print to
+            use_ams (bool, optional): Use the AMS system. Defaults to True.
+            ams_mapping (list[int], optional): The AMS mapping. Defaults to
+                [0].
+            skip_objects (list[int] | None, optional): List of gcode objects to
+                skip. Defaults to [].
+
+        Returns:
+            str: print_status
+        """
+        if skip_objects is not None and not skip_objects:
+            skip_objects = None
+
+        return self.__publish_command(
+            {
+                "print":
+                    {
+                        "command": "project_file",
+                        "param": f"Metadata/plate_{int(plate_number)}.gcode",
+                        "file": filename,
+                        "bed_leveling": bed_leveling,
+                        "bed_type": bed_type,
+                        "flow_cali": flow_calibration,
+                        "vibration_cali": vibration_calibration,
+                        "url": f"ftp:///{filename}",
+                        "layer_inspect": False,
+                        "sequence_id": "10000000",
+                        "use_ams": bool(use_ams),
+                        "ams_mapping": list(ams_mapping),
+                        "skip_objects": skip_objects,
+                    }
+            })
+
+
+    def start_print_3mf_min(self, filename: str,
                         plate_number: int,
                         use_ams: bool = True,
                         ams_mapping: list[int] = [0],
@@ -856,3 +905,426 @@ class PrinterMQTTClient:
         """
         tray = self.__get("vt_tray")
         return FilamentTray.from_dict(tray)
+
+    def get_nozzle_temperature(self) -> float:
+        """
+        Get the current nozzle temperature.
+
+        Returns:
+            float: Nozzle temperature in degrees Celsius.
+        """
+        return float(self.__get("nozzle_temper", 0.0))
+
+    def get_nozzle_target_temperature(self) -> float:
+        """
+        Get the target nozzle temperature.
+
+        Returns:
+            float: Target nozzle temperature in degrees Celsius.
+        """
+        return float(self.__get("nozzle_target_temper", 0.0))
+
+    def get_bed_temperature(self) -> float:
+        """
+        Get the current bed temperature.
+
+        Returns:
+            float: Bed temperature in degrees Celsius.
+        """
+        return float(self.__get("bed_temper", 0.0))
+
+    def get_bed_target_temperature(self) -> float:
+        """
+        Get the target bed temperature.
+
+        Returns:
+            float: Target bed temperature in degrees Celsius.
+        """
+        return float(self.__get("bed_target_temper", 0.0))
+
+    def get_chamber_temperature(self) -> float:
+        """
+        Get the current chamber temperature.
+
+        Returns:
+            float: Chamber temperature in degrees Celsius.
+        """
+        return float(self.__get("chamber_temper", 0.0))
+
+    def get_print_stage(self) -> str:
+        """
+        Get the current print stage.
+
+        Returns:
+            str: Current print stage.
+        """
+        return str(self.__get("mc_print_stage", ""))
+
+    def get_heatbreak_fan_speed(self) -> str:
+        """
+        Get the heatbreak fan speed.
+
+        Returns:
+            str: Heatbreak fan speed.
+        """
+        return str(self.__get("heatbreak_fan_speed", "0"))
+
+    def get_cooling_fan_speed(self) -> str:
+        """
+        Get the cooling fan speed.
+
+        Returns:
+            str: Cooling fan speed.
+        """
+        return str(self.__get("cooling_fan_speed", "0"))
+
+    def get_big_fan1_speed(self) -> str:
+        """
+        Get the speed of big fan 1.
+
+        Returns:
+            str: Speed of big fan 1.
+        """
+        return str(self.__get("big_fan1_speed", "0"))
+
+    def get_big_fan2_speed(self) -> str:
+        """
+        Get the speed of big fan 2.
+
+        Returns:
+            str: Speed of big fan 2.
+        """
+        return str(self.__get("big_fan2_speed", "0"))
+
+    def get_print_percentage(self) -> int:
+        """
+        Get the percentage of the print completed.
+
+        Returns:
+            int: Percentage of print completion.
+        """
+        return int(self.__get("mc_percent", 0))
+
+    def get_remaining_print_time(self) -> int:
+        """
+        Get the remaining time for the print in seconds.
+
+        Returns:
+            int: Remaining time for the print.
+        """
+        return int(self.__get("mc_remaining_time", 0))
+
+    def get_ams_status(self) -> int:
+        """
+        Get the AMS status.
+
+        Returns:
+            int: AMS status code.
+        """
+        return int(self.__get("ams_status", 0))
+
+    def get_ams_rfid_status(self) -> int:
+        """
+        Get the AMS RFID status.
+
+        Returns:
+            int: AMS RFID status code.
+        """
+        return int(self.__get("ams_rfid_status", 0))
+
+    def get_hardware_switch_state(self) -> int:
+        """
+        Get the hardware switch state.
+
+        Returns:
+            int: Hardware switch state.
+        """
+        return int(self.__get("hw_switch_state", 0))
+
+    def get_print_speed_level(self) -> int:
+        """
+        Get the print speed level.
+
+        Returns:
+            int: Print speed level.
+        """
+        return int(self.__get("spd_lvl", 0))
+
+    def get_print_error(self) -> int:
+        """
+        Get the print error status.
+
+        Returns:
+            int: Print error status.
+        """
+        return int(self.__get("print_error", 0))
+
+    def get_lifecycle(self) -> str:
+        """
+        Get the lifecycle status of the printer.
+
+        Returns:
+            str: Lifecycle status.
+        """
+        return str(self.__get("lifecycle", ""))
+
+    def get_wifi_signal(self) -> str:
+        """
+        Get the WiFi signal strength.
+
+        Returns:
+            str: WiFi signal strength.
+        """
+        return str(self.__get("wifi_signal", ""))
+
+    def get_gcode_state(self) -> str:
+        """
+        Get the current G-code state.
+
+        Returns:
+            str: G-code state.
+        """
+        return str(self.__get("gcode_state", ""))
+
+    def get_gcode_file_prepare_percentage(self) -> int:
+        """
+        Get the percentage of the G-code file preparation completed.
+
+        Returns:
+            int: G-code file preparation percentage.
+        """
+        return int(self.__get("gcode_file_prepare_percent", 0))
+
+    def get_queue_number(self) -> int:
+        """
+        Get the current number in the print queue.
+
+        Returns:
+            int: Queue number.
+        """
+        return int(self.__get("queue_number", 0))
+
+    def get_queue_total(self) -> int:
+        """
+        Get the total number of items in the print queue.
+
+        Returns:
+            int: Total queue items.
+        """
+        return int(self.__get("queue_total", 0))
+
+    def get_queue_estimated_time(self) -> int:
+        """
+        Get the estimated time for the queue in seconds.
+
+        Returns:
+            int: Estimated queue time.
+        """
+        return int(self.__get("queue_est", 0))
+
+    def get_queue_status(self) -> int:
+        """
+        Get the status of the queue.
+
+        Returns:
+            int: Queue status.
+        """
+        return int(self.__get("queue_sts", 0))
+
+    def get_project_id(self) -> str:
+        """
+        Get the current project ID.
+
+        Returns:
+            str: Project ID.
+        """
+        return str(self.__get("project_id", ""))
+
+    def get_profile_id(self) -> str:
+        """
+        Get the current profile ID.
+
+        Returns:
+            str: Profile ID.
+        """
+        return str(self.__get("profile_id", ""))
+
+    def get_task_id(self) -> str:
+        """
+        Get the current task ID.
+
+        Returns:
+            str: Task ID.
+        """
+        return str(self.__get("task_id", ""))
+
+    def get_subtask_id(self) -> str:
+        """
+        Get the current subtask ID.
+
+        Returns:
+            str: Subtask ID.
+        """
+        return str(self.__get("subtask_id", ""))
+
+    def get_subtask_name(self) -> str:
+        """
+        Get the name of the current subtask.
+
+        Returns:
+            str: Subtask name.
+        """
+        return str(self.__get("subtask_name", ""))
+
+    def get_gcode_file(self) -> str:
+        """
+        Get the name of the G-code file currently in use.
+
+        Returns:
+            str: G-code file name.
+        """
+        return str(self.__get("gcode_file", ""))
+
+    def get_current_stage(self) -> int:
+        """
+        Get the current stage of the printer.
+
+        Returns:
+            int: Current printer stage.
+        """
+        return int(self.__get("stg_cur", 0))
+
+    def get_print_type(self) -> str:
+        """
+        Get the current print type.
+
+        Returns:
+            str: Print type.
+        """
+        return str(self.__get("print_type", ""))
+
+    def get_home_flag(self) -> int:
+        """
+        Get the home flag status.
+
+        Returns:
+            int: Home flag status.
+        """
+        return int(self.__get("home_flag", 0))
+
+    def get_print_line_number(self) -> str:
+        """
+        Get the current print line number.
+
+        Returns:
+            str: Print line number.
+        """
+        return str(self.__get("mc_print_line_number", ""))
+
+    def get_print_sub_stage(self) -> int:
+        """
+        Get the current print sub-stage.
+
+        Returns:
+            int: Print sub-stage.
+        """
+        return int(self.__get("mc_print_sub_stage", 0))
+
+    def get_sdcard_status(self) -> bool:
+        """
+        Check if the SD card is present.
+
+        Returns:
+            bool: True if SD card is present, False otherwise.
+        """
+        return bool(self.__get("sdcard", False))
+
+    def get_force_upgrade_status(self) -> bool:
+        """
+        Check if a force upgrade is required.
+
+        Returns:
+            bool: True if force upgrade is required, False otherwise.
+        """
+        return bool(self.__get("force_upgrade", False))
+
+    def get_production_state(self) -> str:
+        """
+        Get the production state of the machine.
+
+        Returns:
+            str: Production state.
+        """
+        return str(self.__get("mess_production_state", ""))
+
+    def get_current_layer_number(self) -> int:
+        """
+        Get the current layer number of the print.
+
+        Returns:
+            int: Current layer number.
+        """
+        return int(self.__get("layer_num", 0))
+
+    def get_total_layer_number(self) -> int:
+        """
+        Get the total number of layers for the print.
+
+        Returns:
+            int: Total layer number.
+        """
+        return int(self.__get("total_layer_num", 0))
+
+    def get_skipped_objects(self) -> list:
+        """
+        Get the list of skipped objects during printing.
+
+        Returns:
+            list: List of skipped objects.
+        """
+        return self.__get("s_obj", [])
+
+    def get_filament_backup(self) -> list:
+        """
+        Get the filament backup information.
+
+        Returns:
+            list: Filament backup information.
+        """
+        return self.__get("filam_bak", [])
+
+    def get_fan_gear_status(self) -> int:
+        """
+        Get the fan gear status.
+
+        Returns:
+            int: Fan gear status.
+        """
+        return int(self.__get("fan_gear", 0))
+
+    def get_nozzle_diameter(self) -> float:
+        """
+        Get the nozzle diameter.
+
+        Returns:
+            float: Nozzle diameter in mm.
+        """
+        return float(self.__get("nozzle_diameter", 0.0))
+
+    def get_nozzle_type(self) -> str:
+        """
+        Get the type of nozzle installed.
+
+        Returns:
+            str: Nozzle type.
+        """
+        return str(self.__get("nozzle_type", ""))
+
+    def get_calibration_version(self) -> int:
+        """
+        Get the calibration version.
+
+        Returns:
+            int: Calibration version number.
+        """
+        return int(self.__get("cali_version", 0))

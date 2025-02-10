@@ -5,6 +5,8 @@ and getting all the printer data.
 
 __all__ = ['Printer']
 
+import inspect
+import json
 import base64
 from io import BytesIO
 from typing import Any, BinaryIO
@@ -37,6 +39,37 @@ class Printer:
                                              self.access_code)
         self.__printerFTPClient = PrinterFTPClient(self.ip_address,
                                                    self.access_code)
+
+
+        self.method_dict = {name: getattr(self, name) for name, func in inspect.getmembers(self, predicate=inspect.ismethod) if not name.startswith('_') and name != 'method_dict'}
+
+
+    def call_method_by_name(self, method_name, *args, **kwargs):
+        """
+        Dynamically call a method by its name from the method dictionary.
+
+        Args:
+            method_name (str): The name of the method to call.
+            *args: Variable length argument list for the method.
+            **kwargs: Arbitrary keyword arguments for the method.
+
+        Returns:
+            The result of the method call or None if the method doesn't exist.
+
+        Raises:
+            Exception: If the method call raises an exception, it's caught and printed.
+        """
+        if method_name in self.method_dict:
+            try:
+                result = self.method_dict[method_name](*args, **kwargs)
+                print(f"Result of calling {method_name}: {result}")
+                return result
+            except Exception as e:
+                print(f"An error occurred while calling {method_name}: {e}")
+        else:
+            print(f"Method {method_name} not found in the method dictionary.")
+        return None
+
 
     def connect(self):
         """
@@ -258,7 +291,7 @@ class Printer:
             file.close()
         return "No file uploaded."
 
-    def start_print(self, filename: str,
+    def start_print_min(self, filename: str,
                     plate_number: int,
                     use_ams: bool = True,
                     ams_mapping: list[int] = [0],
@@ -291,6 +324,26 @@ class Printer:
                                                 use_ams,
                                                 ams_mapping,
                                                 skip_objects)
+
+    def start_print(self,filename: str,
+                        plate_number: int,
+                        bed_leveling: bool = True,
+                        flow_calibration: bool = False,
+                        vibration_calibration: bool = False,
+                        bed_type:str = "textured_plate",
+                        use_ams: bool = True,
+                        ams_mapping: list[int] = [0],
+                        skip_objects: list[int] | None = None,
+                        ) -> bool:
+        return self.mqtt_client.start_print_3mf(filename=filename,
+                                                plate_number=plate_number,
+                                                bed_leveling=bed_leveling,
+                                                flow_calibration=flow_calibration,
+                                                vibration_calibration=vibration_calibration,
+                                                bed_type=bed_type,
+                                                use_ams=use_ams,
+                                                ams_mapping=ams_mapping,
+                                                skip_objects=skip_objects,)
 
     def stop_print(self) -> bool:
         """
@@ -645,3 +698,447 @@ class Printer:
         """
         self.mqtt_client.process_ams()
         return self.mqtt_client.ams_hub
+
+    def get_chamber_temperature(self) -> float:
+        """
+        Get the current chamber temperature.
+
+        Returns:
+            float: Chamber temperature in degrees Celsius.
+        """
+        return self.mqtt_client.get_chamber_temperature()
+
+    def get_print_stage(self) -> str:
+        """
+        Get the current print stage.
+
+        Returns:
+            str: Current print stage.
+        """
+        return str(self.mqtt_client.get_current_state())
+
+    def get_heatbreak_fan_speed(self) -> str:
+        """
+        Get the heatbreak fan speed.
+
+        Returns:
+            str: Heatbreak fan speed.
+        """
+        return self.mqtt_client.get_heatbreak_fan_speed()
+
+    def get_cooling_fan_speed(self) -> str:
+        """
+        Get the cooling fan speed.
+
+        Returns:
+            str: Cooling fan speed.
+        """
+        return self.mqtt_client.get_cooling_fan_speed()
+
+    def get_big_fan1_speed(self) -> str:
+        """
+        Get the speed of big fan 1.
+
+        Returns:
+            str: Speed of big fan 1.
+        """
+        return self.mqtt_client.get_big_fan1_speed()
+
+    def get_big_fan2_speed(self) -> str:
+        """
+        Get the speed of big fan 2.
+
+        Returns:
+            str: Speed of big fan 2.
+        """
+        return self.mqtt_client.get_big_fan2_speed()
+
+    def get_print_percentage(self) -> int:
+        """
+        Get the percentage of the print completed.
+
+        Returns:
+            int: Percentage of print completion.
+        """
+        return self.mqtt_client.get_last_print_percentage()
+
+    def get_remaining_print_time(self) -> int:
+        """
+        Get the remaining time for the print in seconds.
+
+        Returns:
+            int: Remaining time for the print.
+        """
+        return self.mqtt_client.get_remaining_time()
+
+    def get_ams_status(self) -> int:
+        """
+        Get the AMS status.
+
+        Returns:
+            int: AMS status code.
+        """
+        return self.mqtt_client.get_ams_status()
+
+    def get_ams_rfid_status(self) -> int:
+        """
+        Get the AMS RFID status.
+
+        Returns:
+            int: AMS RFID status code.
+        """
+        return self.mqtt_client.get_ams_rfid_status()
+
+    def get_hardware_switch_state(self) -> int:
+        """
+        Get the hardware switch state.
+
+        Returns:
+            int: Hardware switch state.
+        """
+        return self.mqtt_client.get_hardware_switch_state()
+
+    def get_print_speed_level(self) -> int:
+        """
+        Get the print speed level.
+
+        Returns:
+            int: Print speed level.
+        """
+        return self.mqtt_client.get_print_speed_level()
+
+    def get_print_error(self) -> int:
+        """
+        Get the print error status.
+
+        Returns:
+            int: Print error status.
+        """
+        return self.mqtt_client.get_print_error()
+
+    def get_lifecycle(self) -> str:
+        """
+        Get the lifecycle status of the printer.
+
+        Returns:
+            str: Lifecycle status.
+        """
+        return self.mqtt_client.get_lifecycle()
+
+    def get_wifi_signal(self) -> str:
+        """
+        Get the WiFi signal strength.
+
+        Returns:
+            str: WiFi signal strength.
+        """
+        return self.mqtt_client.get_wifi_signal()
+
+    def get_gcode_state(self) -> str:
+        """
+        Get the current G-code state.
+
+        Returns:
+            str: G-code state.
+        """
+        return self.mqtt_client.get_gcode_state()
+
+    def get_gcode_file_prepare_percentage(self) -> int:
+        """
+        Get the percentage of the G-code file preparation completed.
+
+        Returns:
+            int: G-code file preparation percentage.
+        """
+        return self.mqtt_client.get_gcode_file_prepare_percentage()
+
+    def get_queue_number(self) -> int:
+        """
+        Get the current number in the print queue.
+
+        Returns:
+            int: Queue number.
+        """
+        return self.mqtt_client.get_queue_number()
+
+    def get_queue_total(self) -> int:
+        """
+        Get the total number of items in the print queue.
+
+        Returns:
+            int: Total queue items.
+        """
+        return self.mqtt_client.get_queue_total()
+
+    def get_queue_estimated_time(self) -> int:
+        """
+        Get the estimated time for the queue in seconds.
+
+        Returns:
+            int: Estimated queue time.
+        """
+        return self.mqtt_client.get_queue_estimated_time()
+
+    def get_queue_status(self) -> int:
+        """
+        Get the status of the queue.
+
+        Returns:
+            int: Queue status.
+        """
+        return self.mqtt_client.get_queue_status()
+
+    def get_project_id(self) -> str:
+        """
+        Get the current project ID.
+
+        Returns:
+            str: Project ID.
+        """
+        return self.mqtt_client.get_project_id()
+
+    def get_profile_id(self) -> str:
+        """
+        Get the current profile ID.
+
+        Returns:
+            str: Profile ID.
+        """
+        return self.mqtt_client.get_profile_id()
+
+    def get_task_id(self) -> str:
+        """
+        Get the current task ID.
+
+        Returns:
+            str: Task ID.
+        """
+        return self.mqtt_client.get_task_id()
+
+    def get_subtask_id(self) -> str:
+        """
+        Get the current subtask ID.
+
+        Returns:
+            str: Subtask ID.
+        """
+        return self.mqtt_client.get_subtask_id()
+
+    def get_subtask_name(self) -> str:
+        """
+        Get the name of the current subtask.
+
+        Returns:
+            str: Subtask name.
+        """
+        return self.mqtt_client.get_subtask_name()
+
+    def get_gcode_file(self) -> str:
+        """
+        Get the name of the G-code file currently in use.
+
+        Returns:
+            str: G-code file name.
+        """
+        return self.mqtt_client.get_file_name()
+
+    def get_current_stage(self) -> int:
+        """
+        Get the current stage of the printer.
+
+        Returns:
+            int: Current printer stage.
+        """
+        return self.mqtt_client.get_current_stage()
+
+
+
+    def get_print_type(self) -> str:
+        """
+        Get the current print type.
+
+        Returns:
+            str: Print type.
+        """
+        return self.mqtt_client.get_print_type()
+
+    def get_home_flag(self) -> int:
+        """
+        Get the home flag status.
+
+        Returns:
+            int: Home flag status.
+        """
+        return self.mqtt_client.get_home_flag()
+
+    def get_print_line_number(self) -> str:
+        """
+        Get the current print line number.
+
+        Returns:
+            str: Print line number.
+        """
+        return self.mqtt_client.get_print_line_number()
+
+    def get_print_sub_stage(self) -> int:
+        """
+        Get the current print sub-stage.
+
+        Returns:
+            int: Print sub-stage.
+        """
+        return self.mqtt_client.get_print_sub_stage()
+
+    def get_sdcard_status(self) -> bool:
+        """
+        Check if the SD card is present.
+
+        Returns:
+            bool: True if SD card is present, False otherwise.
+        """
+        return self.mqtt_client.get_sdcard_status()
+
+    def get_force_upgrade_status(self) -> bool:
+        """
+        Check if a force upgrade is required.
+
+        Returns:
+            bool: True if force upgrade is required, False otherwise.
+        """
+        return self.mqtt_client.get_force_upgrade_status()
+
+    def get_production_state(self) -> str:
+        """
+        Get the production state of the machine.
+
+        Returns:
+            str: Production state.
+        """
+        return self.mqtt_client.get_production_state()
+
+    def get_current_layer_number(self) -> int:
+        """
+        Get the current layer number of the print.
+
+        Returns:
+            int: Current layer number.
+        """
+        return self.mqtt_client.get_current_layer_number()
+
+    def get_total_layer_number(self) -> int:
+        """
+        Get the total number of layers for the print.
+
+        Returns:
+            int: Total layer number.
+        """
+        return self.mqtt_client.get_total_layer_number()
+
+
+
+    def get_filament_backup(self) -> list:
+        """
+        Get the filament backup information.
+
+        Returns:
+            list: Filament backup information.
+        """
+        return self.mqtt_client.get_filament_backup()
+
+    def get_fan_gear_status(self) -> int:
+        """
+        Get the fan gear status.
+
+        Returns:
+            int: Fan gear status.
+        """
+        return self.mqtt_client.get_fan_gear_status()
+
+
+    def get_calibration_version(self) -> int:
+        """
+        Get the calibration version.
+
+        Returns:
+            int: Calibration version number.
+        """
+        return self.mqtt_client.get_calibration_version()
+
+    def to_json(self) -> str:
+        """
+        Convert the Printer instance to a JSON string.
+
+        This method serializes the state and basic information of the Printer
+        object into a JSON format. Note that complex objects like MQTTClient,
+        PrinterCamera, or PrinterFTPClient are not serialized in detail; only
+        their class names are included to prevent circular references and because
+        their internal state might not be serializable or relevant for JSON representation.
+
+        Returns:
+            str: A JSON string representation of the Printer object.
+        """
+
+        # Start with basic attributes
+        json_data = {
+            "ip_address": self.ip_address,
+            "access_code": self.access_code,
+            "serial": self.serial,
+            "state": {
+                "ready": self.get_ready(),
+                "time_remaining": self.get_time(),
+                "percentage": self.get_percentage(),
+                "printer_state": self.get_state(),
+                "print_speed": self.get_print_speed(),
+                "bed_temperature": self.get_bed_temperature(),
+                "nozzle_diameter": self.get_nozzle_diameter(),
+                "nozzle_type": self.get_nozzle_type(),
+                "nozzle_temperature": self.get_nozzle_temperature(),
+                "file_name": self.get_file_name(),
+                "light_state": self.get_light_state(),
+                "current_state": str(self.get_current_state()),
+                "skipped_objects": self.get_skipped_objects(),
+                "chamber_temperature": self.get_chamber_temperature(),
+                "print_stage": self.get_print_stage(),
+                "heatbreak_fan_speed": self.get_heatbreak_fan_speed(),
+                "cooling_fan_speed": self.get_cooling_fan_speed(),
+                "big_fan1_speed": self.get_big_fan1_speed(),
+                "big_fan2_speed": self.get_big_fan2_speed(),
+                "remaining_print_time": self.get_remaining_print_time(),
+                "ams_status": self.get_ams_status(),
+                "ams_rfid_status": self.get_ams_rfid_status(),
+                "hardware_switch_state": self.get_hardware_switch_state(),
+                "print_speed_level": self.get_print_speed_level(),
+                "print_error": self.get_print_error(),
+                "lifecycle": self.get_lifecycle(),
+                "wifi_signal": self.get_wifi_signal(),
+                "gcode_state": self.get_gcode_state(),
+                "gcode_file_prepare_percentage": self.get_gcode_file_prepare_percentage(),
+                "queue_number": self.get_queue_number(),
+                "queue_total": self.get_queue_total(),
+                "queue_estimated_time": self.get_queue_estimated_time(),
+                "queue_status": self.get_queue_status(),
+                "project_id": self.get_project_id(),
+                "profile_id": self.get_profile_id(),
+                "task_id": self.get_task_id(),
+                "subtask_id": self.get_subtask_id(),
+                "subtask_name": self.get_subtask_name(),
+                "gcode_file": self.get_gcode_file(),
+                "current_stage": self.get_current_stage(),
+                "print_type": self.get_print_type(),
+                "home_flag": self.get_home_flag(),
+                "print_line_number": self.get_print_line_number(),
+                "print_sub_stage": self.get_print_sub_stage(),
+                "sdcard_status": self.get_sdcard_status(),
+                "force_upgrade_status": self.get_force_upgrade_status(),
+                "production_state": self.get_production_state(),
+                "current_layer_number": self.get_current_layer_number(),
+                "total_layer_number": self.get_total_layer_number(),
+                "filament_backup": self.get_filament_backup(),
+                "fan_gear_status": self.get_fan_gear_status(),
+                "calibration_version": self.get_calibration_version()
+            }
+        }
+
+        # Convert to JSON string
+        return json.dumps(json_data, default=lambda o: o.__dict__ if hasattr(o, '__dict__') else str(o), sort_keys=True,
+                          indent=4)

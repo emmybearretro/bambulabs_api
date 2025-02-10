@@ -89,6 +89,7 @@ class PrintStatus(Enum):
     PAUSED_NOZZLE_CLOG = 35
     UNKNOWN = None
     IDLE = 255
+    DISCONNECTED = 256 #not official, but I needed a state
 
     @classmethod
     def _missing_(cls, value):
